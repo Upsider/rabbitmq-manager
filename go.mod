@@ -1,4 +1,4 @@
-module rabbitmq-manager
+module github.com/Upsider/rabbitmq-manager
 
 go 1.16
 
