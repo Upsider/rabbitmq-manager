@@ -10,8 +10,8 @@ import (
 	"sync"
 )
 
-func NewManager(cfg rabbit_mq.Config) (EBRManager, error) {
-	client, err := rabbit_mq.NewClient(cfg)
+func NewManager(cfg rabbitmq_manager.Config) (EBRManager, error) {
+	client, err := rabbitmq_manager.NewClient(cfg)
 	if err != nil {
 		return EBRManager{}, err
 	}
@@ -37,9 +37,9 @@ type Handler interface {
 
 // EBRManager -> Exponential Backoff Retry Manager
 type EBRManager struct {
-	rabbit_mq.RabbitClient
+	rabbitmq_manager.RabbitClient
 	Ch            *amqp.Channel
-	cfg           rabbit_mq.Config
+	cfg           rabbitmq_manager.Config
 	jobsExchange  string
 	retryExchange string
 	handlers      map[string]struct {
@@ -55,7 +55,7 @@ func (e *EBRManager) Setup() error {
 	return nil
 }
 
-func (e *EBRManager) RegisterQueue(name string) (rabbit_mq.Queue, error) {
+func (e *EBRManager) RegisterQueue(name string) (rabbitmq_manager.Queue, error) {
 	queueName := e.resolveNaming(name)
 	q, err := e.Ch.QueueDeclare(
 		queueName, // name
@@ -66,7 +66,7 @@ func (e *EBRManager) RegisterQueue(name string) (rabbit_mq.Queue, error) {
 		nil,       // arguments
 	)
 	if err != nil {
-		return rabbit_mq.Queue{}, err
+		return rabbitmq_manager.Queue{}, err
 	}
 
 	err = e.Ch.QueueBind(
@@ -77,10 +77,10 @@ func (e *EBRManager) RegisterQueue(name string) (rabbit_mq.Queue, error) {
 		nil,
 	)
 	if err != nil {
-		return rabbit_mq.Queue{}, err
+		return rabbitmq_manager.Queue{}, err
 	}
 
-	queue := rabbit_mq.Queue{
+	queue := rabbitmq_manager.Queue{
 		Name: q.Name,
 	}
 
@@ -121,7 +121,7 @@ func (e *EBRManager) Run() {
 	wg.Wait()
 }
 
-func (e *EBRManager) Publish(job rabbit_mq.Job, args ...rabbit_mq.Publisher) error {
+func (e *EBRManager) Publish(job rabbitmq_manager.Job, args ...rabbitmq_manager.Publisher) error {
 	body, err := json.Marshal(job.Args)
 	if err != nil {
 		return err

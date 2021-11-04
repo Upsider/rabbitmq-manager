@@ -1,4 +1,4 @@
-package rabbit_mq
+package rabbitmq_manager
 
 import "time"
 
