@@ -3,9 +3,9 @@ package ebr_manger
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Upsider/rabbitmq-manager"
 	"github.com/streadway/amqp"
 	"math"
-	"rabbitmq-manager"
 	"strconv"
 	"sync"
 )
