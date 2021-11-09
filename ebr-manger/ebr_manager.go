@@ -230,7 +230,7 @@ func (e *EBRManager) retry(d amqp.Delivery, handler Handler) error {
 		map[string]interface{}{
 			"x-dead-letter-exchange":    e.jobsExchange,
 			"x-dead-letter-routing-key": e.resolveNaming(handler.JobName()),
-			"x-expires":                 intTtl + 60000,
+			"x-expires":                 ttl + 60000,
 		},
 	)
 	if err != nil {
@@ -247,7 +247,7 @@ func (e *EBRManager) retry(d amqp.Delivery, handler Handler) error {
 			DeliveryMode: amqp.Persistent,
 			ContentType:  "application/json",
 			Body:         d.Body,
-			Expiration:   strconv.Itoa(intTtl),
+			Expiration:   strconv.Itoa(ttl),
 		},
 	)
 }
