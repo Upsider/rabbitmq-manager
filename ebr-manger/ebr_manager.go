@@ -3,11 +3,13 @@ package ebr_manger
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Upsider/rabbitmq-manager"
-	"github.com/streadway/amqp"
 	"math"
 	"strconv"
 	"sync"
+
+	"github.com/streadway/amqp"
+
+	"github.com/Upsider/rabbitmq-manager"
 )
 
 func NewManager(cfg rabbitmq_manager.Config) (EBRManager, error) {
@@ -175,7 +177,13 @@ func (e *EBRManager) Publish(job rabbitmq_manager.Job, args ...rabbitmq_manager.
 }
 
 func (e *EBRManager) work(handler Handler) {
-	msgs, err := e.Ch.Consume(
+	chann, err := e.RabbitClient.Channel()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	msgs, err := chann.Consume(
 		e.resolveNaming(handler.JobName()),
 		"",
 		false,
@@ -184,6 +192,12 @@ func (e *EBRManager) work(handler Handler) {
 		false,
 		nil,
 	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = chann.Qos(1, 0, false)
 	if err != nil {
 		fmt.Println(err)
 		return
