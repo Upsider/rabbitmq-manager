@@ -177,41 +177,46 @@ func (e *EBRManager) Publish(job rabbitmq_manager.Job, args ...rabbitmq_manager.
 }
 
 func (e *EBRManager) work(handler Handler) {
-	chann, err := e.RabbitClient.Channel()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	msgs, err := chann.Consume(
-		e.resolveNaming(handler.JobName()),
-		"",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	err = chann.Qos(1, 0, false)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	for m := range msgs {
-		err := handler.UnMarshall(m.Body)
+	//retry infinitely in case channel close or something bad happens
+	for {
+		chann, err := e.RabbitClient.Channel()
 		if err != nil {
-			if rErr := e.retry(m, handler); rErr != nil {
-				continue
-			}
+			fmt.Println(err)
+			return
 		}
 
-		m.Ack(false)
+		msgs, err := chann.Consume(
+			e.resolveNaming(handler.JobName()),
+			"",
+			false,
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		err = chann.Qos(1, 0, false)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		for m := range msgs {
+			err := handler.UnMarshall(m.Body)
+			if err != nil {
+				if rErr := e.retry(m, handler); rErr != nil {
+					continue
+				}
+			}
+
+			m.Ack(false)
+		}
+
+		chann.Close()
 	}
 }
 
