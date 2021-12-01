@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/streadway/amqp"
 
@@ -48,9 +49,12 @@ type EBRManager struct {
 		NumWorkers int
 		Handler    Handler
 	}
+	connError error
+	chError   error
 }
 
 func (e *EBRManager) Setup() error {
+	go e.checkChannelClose()
 	if err := e.setUpExchanges(); err != nil {
 		return err
 	}
@@ -354,4 +358,38 @@ func (e *EBRManager) resolveNaming(str string) string {
 	}
 
 	return str
+}
+
+func (e *EBRManager) refreshConnection() {
+	var err error
+	for i := 0; i < 10; i++ {
+		time.Sleep(2 * time.Second)
+		fmt.Printf("reconnection %d times\n", i+1)
+
+		e.RabbitClient, err = rabbitmq_manager.NewClient(e.cfg)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		e.Ch, err = e.RabbitClient.Channel()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		break
+	}
+
+	if err != nil {
+		panic(fmt.Sprintf("can't connect to ra, %v", err))
+	} else {
+		fmt.Println("connection acquired")
+		go e.checkChannelClose()
+	}
+}
+
+func (e *EBRManager) checkChannelClose() {
+	<-e.Ch.NotifyClose(make(chan *amqp.Error))
+	e.refreshConnection()
 }
