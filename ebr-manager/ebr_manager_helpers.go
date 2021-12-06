@@ -15,10 +15,12 @@ import (
 func (e *EBRManager) work(handler Handler) {
 	//retry infinitely in case channel close or something bad happens
 	for {
+		fmt.Println("worker start")
 		chann, err := e.RabbitClient.Channel()
 		if err != nil {
 			fmt.Println(err)
-			return
+			time.Sleep(30 * time.Second)
+			continue
 		}
 
 		msgs, err := chann.Consume(
@@ -32,13 +34,15 @@ func (e *EBRManager) work(handler Handler) {
 		)
 		if err != nil {
 			fmt.Println(err)
-			return
+			time.Sleep(30 * time.Second)
+			continue
 		}
 
 		err = chann.Qos(1, 0, false)
 		if err != nil {
 			fmt.Println(err)
-			return
+			time.Sleep(30 * time.Second)
+			continue
 		}
 
 		for m := range msgs {
