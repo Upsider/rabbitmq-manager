@@ -182,3 +182,17 @@ func (e *EBRManager) Publish(job rabbitmq_manager.Job, args ...rabbitmq_manager.
 		},
 	)
 }
+
+func (e *EBRManager) PublishMessage(body []byte, queue string) error {
+	return e.Ch.Publish(
+		"",
+		queue,
+		false,
+		false,
+		amqp.Publishing{
+			DeliveryMode: amqp.Persistent,
+			ContentType:  "application/json",
+			Body:         body,
+		},
+	)
+}
