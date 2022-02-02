@@ -23,6 +23,13 @@ func (e *EBRManager) work(handler Handler) {
 			continue
 		}
 
+		err = chann.Qos(1, 0, false)
+		if err != nil {
+			fmt.Println(err)
+			time.Sleep(30 * time.Second)
+			continue
+		}
+
 		msgs, err := chann.Consume(
 			e.resolveNaming(handler.JobName()),
 			"",
@@ -38,17 +45,11 @@ func (e *EBRManager) work(handler Handler) {
 			continue
 		}
 
-		err = chann.Qos(1, 0, false)
-		if err != nil {
-			fmt.Println(err)
-			time.Sleep(30 * time.Second)
-			continue
-		}
-
 		for m := range msgs {
 			err := handler.UnMarshall(m.Body)
 			if err != nil {
 				if rErr := e.retry(m, handler); rErr != nil {
+					m.Nack(false, true)
 					continue
 				}
 			}
